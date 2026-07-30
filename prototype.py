@@ -316,7 +316,6 @@ if __name__ == "__main__":
     GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"  
     route_service = GoogleRouteService(GOOGLE_API_KEY, kmz_parser)
     
-    # [핵심] 추천 엔진 객체는 반복문 "밖"에서 한 번만 생성해야 가중치 학습 결과가 유지됩니다.
     recommend_engine = RouteRecommendationEngine()
 
     while True:
