@@ -312,7 +312,7 @@ class RouteRecommendationEngine:
 # 실행 
 # 실행 구문 (이 부분만 교체하시면 됩니다)
 if __name__ == "__main__":
-    kmz_parser = AccessibilityDataParser("doc.kmz")
+    kmz_parser = AccessibilityDataParser("prototype.kmz")
     GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"  
     route_service = GoogleRouteService(GOOGLE_API_KEY, kmz_parser)
     
