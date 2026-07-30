@@ -284,7 +284,7 @@ class RouteRecommendationEngine:
                 'raw_features': route
             })
             
-        # 페널티  점수 기준 오름차순 정렬
+        # 페널티 점수 기준 오름차순 정렬
         results.sort(key=lambda x: x['score'])
         return results
 
@@ -310,59 +310,73 @@ class RouteRecommendationEngine:
 
 
 # 실행 
+# 실행 구문 (이 부분만 교체하시면 됩니다)
 if __name__ == "__main__":
     kmz_parser = AccessibilityDataParser("doc.kmz")
     GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"  
     route_service = GoogleRouteService(GOOGLE_API_KEY, kmz_parser)
+    
+    # [핵심] 추천 엔진 객체는 반복문 "밖"에서 한 번만 생성해야 가중치 학습 결과가 유지됩니다.
     recommend_engine = RouteRecommendationEngine()
 
-    #  사용자 유형 
-    print("사용자 유형을 선택해주세요.")
-    print("  1) 휠체어 이용자")
-    print("  2) 시각장애인")
-    print("  3) 유모차 이용자")
-    print("  4) 고령자")
-    
-    choice = input("번호를 입력하세요 (1~4): ").strip()
+    while True:
+        print(" [교통약자 맞춤형 경로 추천 시스템] ")
+        print(" 1) 휠체어 이용자 | 2) 시각장애인 | 3) 유모차 이용자 | 4) 고령자")
+        print(" (종료하려면 'q' 입력)")
 
-    user_type_map = {
-        '1': 'wheelchair',
-        '2': 'blind',
-        '3': 'stroller',
-        '4': 'elder'
-    }
-    current_user_type = user_type_map.get(choice, None)
+        # 사용자 유형
+        choice = input("사용자 유형을 선택하세요 (1~4 / q): ").strip().lower()
+        if choice == 'q':
+            print("프로그램을 종료합니다.")
+            break
 
-    # 출발지, 목적지
-    origin = input("출발지를 입력하세요: ").strip() 
-    destination = input("목적지를 입력하세요: ").strip() 
+        user_type_map = {
+            '1': 'wheelchair',
+            '2': 'blind',
+            '3': 'stroller',
+            '4': 'elder'
+        }
+        current_user_type = user_type_map.get(choice)
+        if not current_user_type:
+            print("잘못된 번호입니다. 다시 선택해주세요.")
+            continue
 
-    routes_5 = route_service.get_top5_routes(origin, destination)
-
-    # 경로 추천 순위 출력
-    ranked_routes = recommend_engine.rank_routes(routes_5, user_type=current_user_type)
-    for rank, r in enumerate(ranked_routes, 1):
-        f = r['raw_features']
-        print(f"\n[{rank}위 추천] 경로 ID: {r['route_id']} (비선호 점수: {r['score']})")
-        print(f"소요시간 {f['travel_time']:.1f}분 | 환승 {int(f['transfers'])}회 | 전체 도보 {f['walk_distance']:.0f}m | 저상버스 비율 {f['low_floor_bus_ratio']*100:.0f}%")
-        print(f"불편 보도거리 {f['bad_mobility_walk_dist']:.0f}m | 단차 지점 {int(f['step_count'])}개 | 장애물 {int(f['obstacle_count'])}개")
-        print(f"파손 점자블록 {int(f['damaged_tactile_count'])}개 | 경사 {int(f['slope_count'])}개 | 바퀴끼임 위험 {int(f['wheel_trap_count'])}개 | 좁은 도로 {int(f['narrow_road_count'])}개")
-
-    #피드백 수집
-    selected_id = input("\n실제로 이용할 경로의 ID(1~5)를 입력하세요 (종료는 Enter): ").strip()
-
-    if selected_id.isdigit() and 1 <= int(selected_id) <= len(routes_5):
-        selected_id = int(selected_id)
-        norm_matrix = recommend_engine.normalize_features(routes_5)
+        # 출발지, 목적지
+        origin = input("출발지를 입력하세요 (종료: q): ").strip()
+        if origin.lower() == 'q': break
         
-        feedback_data = []
-        for idx, route in enumerate(routes_5):
-            is_selected = 1 if (idx + 1) == selected_id else 0
-            feedback_data.append({
-                'norm_features': norm_matrix[idx],
-                'selected': is_selected
-            })
+        destination = input("목적지를 입력하세요 (종료: q): ").strip()
+        if destination.lower() == 'q': break
 
-        if current_user_type:
+        routes_5 = route_service.get_top5_routes(origin, destination)
+        if not routes_5:
+            print("경로를 검색하지 못했습니다. 입력 정보를 확인해주세요.")
+            continue
+
+        ranked_routes = recommend_engine.rank_routes(routes_5, user_type=current_user_type)
+        
+        print(f"\n>>> [{current_user_type.upper()}] 추천 경로 결과 <<<")
+        for rank, r in enumerate(ranked_routes, 1):
+            f = r['raw_features']
+            print(f"\n[{rank}위 추천] 경로 ID: {r['route_id']} (비선호 점수: {r['score']})")
+            print(f"  - 소요시간 {f['travel_time']:.1f}분 | 환승 {int(f['transfers'])}회 | 전체 도보 {f['walk_distance']:.0f}m | 저상버스 비율 {f['low_floor_bus_ratio']*100:.0f}%")
+            print(f"  - 불편 보도거리 {f['bad_mobility_walk_dist']:.0f}m | 단차 지점 {int(f['step_count'])}개 | 장애물 {int(f['obstacle_count'])}개")
+            print(f"  - 파손 점자블록 {int(f['damaged_tactile_count'])}개 | 경사 {int(f['slope_count'])}개 | 바퀴끼임 위험 {int(f['wheel_trap_count'])}개 | 좁은 도로 {int(f['narrow_road_count'])}개")
+
+        # 사용자 피드백 수집
+        selected_id = input("\n실제로 이용할 경로의 ID(1~5)를 선택하세요 (학습 없이 넘어가려면 Enter): ").strip()
+
+        if selected_id.isdigit() and 1 <= int(selected_id) <= len(routes_5):
+            selected_id = int(selected_id)
+            norm_matrix = recommend_engine.normalize_features(routes_5)
+            
+            feedback_data = []
+            for idx, route in enumerate(routes_5):
+                # 사용자가 선택한 경로는 1, 아닌 경로들은 0으로 라벨링
+                is_selected = 1 if (idx + 1) == selected_id else 0
+                feedback_data.append({
+                    'norm_features': norm_matrix[idx],
+                    'selected': is_selected
+                })
+
             recommend_engine.update_weights_from_feedback(current_user_type, feedback_data)
-
