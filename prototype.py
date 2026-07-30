@@ -357,7 +357,7 @@ if __name__ == "__main__":
         print(f"\n>>> [{current_user_type.upper()}] 추천 경로 결과 <<<")
         for rank, r in enumerate(ranked_routes, 1):
             f = r['raw_features']
-            print(f"\n[{rank}위 추천] 경로 ID: {r['route_id']} (비선호 점수: {r['score']})")
+            print(f"\n[{rank}위 추천] 경로 ID: {r['route_id']} (패널티 점수: {r['score']})")
             print(f"  - 소요시간 {f['travel_time']:.1f}분 | 환승 {int(f['transfers'])}회 | 전체 도보 {f['walk_distance']:.0f}m | 저상버스 비율 {f['low_floor_bus_ratio']*100:.0f}%")
             print(f"  - 불편 보도거리 {f['bad_mobility_walk_dist']:.0f}m | 단차 지점 {int(f['step_count'])}개 | 장애물 {int(f['obstacle_count'])}개")
             print(f"  - 파손 점자블록 {int(f['damaged_tactile_count'])}개 | 경사 {int(f['slope_count'])}개 | 바퀴끼임 위험 {int(f['wheel_trap_count'])}개 | 좁은 도로 {int(f['narrow_road_count'])}개")
